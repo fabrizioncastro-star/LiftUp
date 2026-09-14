@@ -1,0 +1,30 @@
+{
+  "name": "liftup-mobile",
+  "version": "0.1.0",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "typecheck": "tsc --noEmit",
+    "update": "eas update --branch preview --message \"LiftUp\""
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "axios": "^1.7.7",
+    "babel-preset-expo": "~58.0.0",
+    "expo": "^58.0.22",
+    "expo-image-picker": "~58.0.10",
+    "expo-status-bar": "~58.0.4",
+    "expo-updates": "~58.0.20",
+    "expo-video": "~58.0.13",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "private": true
+}
