@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "LiftUp",
+    "slug": "liftup",
+    "owner": "fangos",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.liftup.app"
+    },
+    "android": {
+      "package": "com.liftup.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0dbda775-0585-46c4-8e58-6c716b9e5b27"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0dbda775-0585-46c4-8e58-6c716b9e5b27"
+    },
+    "plugins": [
+      "expo-status-bar",
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LiftUp necesita acceso a tus fotos y videos para publicar tus sesiones y actualizar tu perfil."
+        }
+      ]
+    ]
+  }
+}
