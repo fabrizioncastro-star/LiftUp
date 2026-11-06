@@ -3,7 +3,7 @@ import { FeedService } from '../../src/modules/posts/FeedService';
 import { PrioridadSeguidosStrategy, SoloFechaStrategy } from '../../src/modules/posts/FeedStrategy';
 
 const item = (id: number): FeedItem => ({
-  id, descripcion: null, archivoUrl: '/x', tipoArchivo: 'imagen', ejercicio: null, pesoKg: null, series: null,
+  id, comunidadId: null, totalReacciones: 0, miReaccion: null, totalComentarios: 0, descripcion: null, archivoUrl: '/x', tipoArchivo: 'imagen', ejercicio: null, pesoKg: null, series: null,
   repeticiones: null, fecha: new Date().toISOString(), autor: { id: 2, nombre: 'B', fotoPerfil: null }, esMia: false, deSeguido: false,
 });
 
@@ -14,6 +14,8 @@ class FeedRepoFalso implements IFeedRepository {
     this.ultima = { orden, limite, desplazamiento };
     return Array.from({ length: this.total }, (_, i) => item(i + 1)).slice(desplazamiento, desplazamiento + limite);
   }
+  async listarDeUsuario() { return []; }
+  async listarDeComunidad() { return []; }
 }
 
 describe('FeedService (HU-006)', () => {
