@@ -121,3 +121,56 @@ export class SolicitudService {
     return s;
   }
 }
+
+export interface PaginaComunidad {
+  publicaciones: FeedItem[];
+  pagina: number;
+  hayMas: boolean;
+}
+
+export class ComunidadService {
+  constructor(
+    private readonly comunidades: IComunidadRepository,
+    private readonly feed: IFeedRepository,
+    private readonly publicaciones: PublicacionFacade,
+  ) {}
+
+  listar(usuarioId: number, texto: unknown): Promise<Comunidad[]> {
+    return this.comunidades.listar(usuarioId, typeof texto === 'string' ? texto.trim() : '');
+  }
+
+  mias(usuarioId: number): Promise<Comunidad[]> {
+    return this.comunidades.mias(usuarioId);
+  }
+
+  async unirse(usuarioId: number, comunidadId: number): Promise<void> {
+    await this.exigirComunidad(comunidadId);
+    if (await this.comunidades.esMiembro(comunidadId, usuarioId)) throw new ConflictError('Ya eres miembro de esta comunidad');
+    await this.comunidades.unir(comunidadId, usuarioId);
+  }
+
+  async verFeed(usuarioId: number, comunidadId: number, paginaPedida?: unknown): Promise<PaginaComunidad> {
+    await this.exigirMiembro(usuarioId, comunidadId);
+    const pagina = Math.max(1, Math.floor(Number(paginaPedida)) || 1);
+    const limite = 10;
+    const filas = await this.feed.listarDeComunidad(usuarioId, comunidadId, limite + 1, (pagina - 1) * limite);
+    return { publicaciones: filas.slice(0, limite), pagina, hayMas: filas.length > limite };
+  }
+
+  async publicar(usuarioId: number, comunidadId: number, archivo: ArchivoSubido | undefined, datos: DatosPublicacion) {
+    await this.exigirMiembro(usuarioId, comunidadId);
+    return this.publicaciones.publicar(usuarioId, archivo, datos, comunidadId);
+  }
+
+  private async exigirComunidad(comunidadId: number): Promise<void> {
+    const c = await this.comunidades.buscarPorId(comunidadId);
+    if (!c || c.estado !== 'activa') throw new NotFoundError('Comunidad no encontrada');
+  }
+
+  private async exigirMiembro(usuarioId: number, comunidadId: number): Promise<void> {
+    await this.exigirComunidad(comunidadId);
+    if (!(await this.comunidades.esMiembro(comunidadId, usuarioId))) {
+      throw new ForbiddenError('Debes ser miembro de la comunidad para acceder a su contenido');
+    }
+  }
+}

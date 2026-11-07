@@ -2,15 +2,27 @@ import { RequestHandler, Router } from 'express';
 import { env } from '../../config/env';
 import { PublicacionMediaFactory } from '../media/MediaFactory';
 import { subirUno } from '../media/upload';
+import { IFeedRepository } from './domain/IFeedRepository';
+import { IPublicacionRepository } from './domain/IPublicacionRepository';
 import { FeedRepository } from './infra/FeedRepository';
 import { PublicacionRepository } from './infra/PublicacionRepository';
 import { FeedService } from './FeedService';
 import { PostsController } from './PostsController';
-import { PublicacionFacade } from './PublicacionFacade';
+import { ObservadorPublicacion, PublicacionFacade } from './PublicacionFacade';
 
-export function crearPostsModulo(authRequired: RequestHandler): { postsRouter: Router; feedRouter: Router } {
-  const facade = new PublicacionFacade(new PublicacionRepository(), new PublicacionMediaFactory(env.uploadsDir));
-  const controller = new PostsController(facade, new FeedService(new FeedRepository()));
+export interface PostsModulo {
+  postsRouter: Router;
+  feedRouter: Router;
+  facade: PublicacionFacade;
+  feedRepository: IFeedRepository;
+  publicacionRepository: IPublicacionRepository;
+}
+
+export function crearPostsModulo(authRequired: RequestHandler, observadores: ObservadorPublicacion[]): PostsModulo {
+  const publicacionRepository = new PublicacionRepository();
+  const feedRepository = new FeedRepository();
+  const facade = new PublicacionFacade(publicacionRepository, new PublicacionMediaFactory(env.uploadsDir), observadores);
+  const controller = new PostsController(facade, new FeedService(feedRepository));
 
   const postsRouter = Router();
   postsRouter.post('/', authRequired, subirUno('archivo'), controller.publicar);
@@ -19,5 +31,5 @@ export function crearPostsModulo(authRequired: RequestHandler): { postsRouter: R
 
   const feedRouter = Router();
   feedRouter.get('/', authRequired, controller.verFeed);
-  return { postsRouter, feedRouter };
+  return { postsRouter, feedRouter, facade, feedRepository, publicacionRepository };
 }
