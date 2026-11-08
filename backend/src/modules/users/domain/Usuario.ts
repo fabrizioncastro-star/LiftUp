@@ -56,6 +56,10 @@ export class Usuario {
   get privacidad(): Privacidad { return this._privacidad; }
   get fechaRegistro(): Date | undefined { return this._fechaRegistro; }
 
+  puedeModerar(): boolean {
+    return false;
+  }
+
   toPublico() {
     return {
       id: this._id,
