@@ -114,3 +114,53 @@ describe('SolicitudComunidad (dominio)', () => {
     expect(() => s.rechazar()).toThrow('ya fue resuelta');
   });
 });
+
+describe('ComunidadService (HU-009)', () => {
+  const feedItem = { id: 1 } as FeedItem;
+  const feed: IFeedRepository = { listar: async () => [], listarDeUsuario: async () => [], listarDeComunidad: async () => [feedItem] };
+  const creadas: (number | null)[] = [];
+  const repoPub = {
+    crear: async (p: Publicacion) => { creadas.push(p.comunidadId); return fabricaPara('jpg').crear({ id: 1, usuarioId: p.usuarioId, comunidadId: p.comunidadId, descripcion: null, archivoUrl: p.archivoUrl, ejercicio: null, pesoKg: null, series: null, repeticiones: null }); },
+    buscarPorId: async () => null, actualizar: async () => undefined, eliminar: async () => undefined,
+  };
+  const montar = () => {
+    const c = new ComRepo();
+    return { c, s: new ComunidadService(c, feed, new PublicacionFacade(repoPub, new PublicacionMediaFactory(carpetaTemporal()))) };
+  };
+  beforeEach(() => { creadas.length = 0; });
+
+  it('Esc. 1: al unirse aparece en "Mis comunidades"; unirse dos veces -> 409; inexistente -> 404', async () => {
+    const { s } = montar();
+    await s.unirse(5, 1);
+    expect((await s.mias(5)).map((c) => c.nombre)).toEqual(['Gym Miraflores']);
+    await expect(s.unirse(5, 1)).rejects.toMatchObject({ status: 409 });
+    await expect(s.unirse(5, 99)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('Esc. 2: un miembro ve el feed de la comunidad', async () => {
+    const { s } = montar();
+    await s.unirse(5, 1);
+    expect((await s.verFeed(5, 1)).publicaciones).toEqual([feedItem]);
+  });
+
+  it('Esc. 3: un miembro publica dentro de la comunidad (queda con comunidadId)', async () => {
+    const { s } = montar();
+    await s.unirse(5, 1);
+    await s.publicar(5, 1, archivo(JPG), { descripcion: 'Hola comunidad' });
+    expect(creadas).toEqual([1]);
+  });
+
+  it('Esc. 4: quien no es miembro no ve el feed ni publica (403)', async () => {
+    const { s } = montar();
+    await expect(s.verFeed(6, 1)).rejects.toMatchObject({ status: 403 });
+    await expect(s.publicar(6, 1, archivo(JPG), {})).rejects.toMatchObject({ status: 403 });
+    expect(creadas).toEqual([]);
+  });
+
+  it('buscar por nombre filtra y marca si soy miembro', async () => {
+    const { s } = montar();
+    await s.unirse(5, 1);
+    expect(await s.listar(5, 'miraflores')).toMatchObject([{ nombre: 'Gym Miraflores', esMiembro: true, miembros: 1 }]);
+    expect(await s.listar(5, 'zzz')).toEqual([]);
+  });
+});

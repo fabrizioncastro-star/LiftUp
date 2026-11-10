@@ -3,15 +3,20 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { api, mensajeDeError } from '../api/client';
 import { Campo } from '../components/Campo';
 import { Pantalla } from '../components/Pantalla';
-import { Boton, ErrorTexto } from '../components/ui';
+import { Boton, Encabezado, ErrorTexto } from '../components/ui';
 import { MedioElegido, archivoParaForm, elegirMedio } from '../media/seleccion';
+import { useNav } from '../navigation/NavContext';
 import { C } from '../theme';
 
 interface Props {
   alPublicar: () => void;
+  comunidadId?: number;
+  comunidadNombre?: string;
+  conVolver?: boolean;
 }
 
-export function NuevaSesionScreen({ alPublicar }: Props) {
+export function NuevaSesionScreen({ alPublicar, comunidadId, comunidadNombre, conVolver }: Props) {
+  const nav = useNav();
   const [medio, setMedio] = useState<MedioElegido | null>(null);
   const [descripcion, setDescripcion] = useState('');
   const [ejercicio, setEjercicio] = useState('');
@@ -41,7 +46,7 @@ export function NuevaSesionScreen({ alPublicar }: Props) {
     if (series.trim()) form.append('series', series.trim());
     if (reps.trim()) form.append('repeticiones', reps.trim());
     try {
-      await api.post('/api/posts', form, {
+      await api.post(comunidadId ? `/api/communities/${comunidadId}/posts` : '/api/posts', form, {
         timeout: 120000,
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (e) => setProgreso(e.total ? Math.round((e.loaded / e.total) * 100) : null),
@@ -59,7 +64,7 @@ export function NuevaSesionScreen({ alPublicar }: Props) {
 
   return (
     <Pantalla>
-      <Text style={s.titulo}>Nueva sesión</Text>
+      {conVolver ? <Encabezado titulo={comunidadNombre ? `Publicar en ${comunidadNombre}` : 'Nueva sesión'} alVolver={nav.pop} /> : <Text style={s.titulo}>Nueva sesión</Text>}
       <View style={{ height: 12 }} />
 
       <Pressable style={s.selector} onPress={elegir} disabled={subiendo}>
