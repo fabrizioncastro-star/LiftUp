@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, mensajeDeError } from '../api/client';
 import { PostCard } from '../components/PostCard';
@@ -17,15 +17,20 @@ export function FeedScreen() {
   const [pagina, setPagina] = useState(1);
   const [hayMas, setHayMas] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
+  const [noLeidas, setNoLeidas] = useState(0);
 
   const cargar = useCallback(async (modo: 'inicial' | 'refrescar') => {
     if (modo === 'refrescar') setRefrescando(true);
     setError('');
     try {
-      const { data } = await api.get('/api/feed', { params: { pagina: 1, limite: 10 }, timeout: 5000 });
-      setItems(data.publicaciones);
+      const [feed, cuenta] = await Promise.all([
+        api.get('/api/feed', { params: { pagina: 1, limite: 10 }, timeout: 5000 }),
+        api.get('/api/notifications/count', { timeout: 5000 }).catch(() => ({ data: { noLeidas: 0 } })),
+      ]);
+      setItems(feed.data.publicaciones);
       setPagina(1);
-      setHayMas(data.hayMas);
+      setHayMas(feed.data.hayMas);
+      setNoLeidas(cuenta.data.noLeidas);
     } catch (err) {
       setError(mensajeDeError(err));
     } finally {
@@ -52,7 +57,18 @@ export function FeedScreen() {
 
   return (
     <SafeAreaView style={s.raiz} edges={['top']}>
-      <Encabezado titulo="LiftUp" />
+      <Encabezado
+        titulo="LiftUp"
+        derecha={(
+          <>
+            <Pressable onPress={() => nav.push({ n: 'buscar' })} hitSlop={10} accessibilityLabel="Buscar personas"><Text style={s.icono}>🔍</Text></Pressable>
+            <Pressable onPress={() => nav.push({ n: 'notificaciones' })} hitSlop={10} accessibilityLabel="Notificaciones">
+              <Text style={s.icono}>🔔</Text>
+              {noLeidas > 0 ? <View style={s.badge}><Text style={s.badgeTxt}>{noLeidas > 9 ? '9+' : noLeidas}</Text></View> : null}
+            </Pressable>
+          </>
+        )}
+      />
       {cargando ? (
         <View style={s.centro}><ActivityIndicator size="large" /></View>
       ) : (
@@ -88,4 +104,7 @@ const s = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   vacio: { color: C.suave, fontSize: 16, textAlign: 'center' },
   error: { color: C.peligro, textAlign: 'center', marginBottom: 12 },
+  icono: { fontSize: 22 },
+  badge: { position: 'absolute', top: -6, right: -8, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: C.peligro, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  badgeTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
 });
