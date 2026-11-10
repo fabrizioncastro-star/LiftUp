@@ -88,3 +88,78 @@ describe('ReporteService (HU-014)', () => {
     ['usuario inexistente', () => montar().s.reportarUsuario(1, 77, 'spam', null), 404],
   ])('%s', async (_n, accion, status) => { await expect(accion()).rejects.toMatchObject({ status }); });
 });
+
+describe('Comandos del administrador (HU-011 y HU-015) — patrón Command', () => {
+  const historial = (): IHistorialRepository & { filas: string[] } => {
+    const h = { filas: [] as string[], registrar: async (_a: number, accion: string, tipo: string, id: number) => { h.filas.push(`${accion}:${tipo}:${id}`); }, listar: async () => [] };
+    return h;
+  };
+  const avisos: { para: number; tipo: string }[] = [];
+  const notificador = { notificar: async (para: number, tipo: string) => { avisos.push({ para, tipo }); } };
+  beforeEach(() => { avisos.length = 0; });
+
+  it('HU-015 esc. 2: eliminar publicación la borra, avisa al autor, marca los reportes y queda en el historial', async () => {
+    const repoP = pubRepo(); const reportes = new ReporteRepo(); const h = historial();
+    await reportes.crear(1, 'publicacion', 10, 'spam', null);
+    const facade = new PublicacionFacade(repoP, new PublicacionMediaFactory(carpetaTemporal()));
+    await new EjecutorDeComandos(h).ejecutar(9, new EliminarPublicacionComando(facade, notificador, reportes, 10));
+    expect(repoP.borradas).toEqual([10]);
+    expect(avisos).toEqual([{ para: 2, tipo: 'publicacion_eliminada' }]);
+    expect(reportes.filas[0].estado).toBe('revisado');
+    expect(h.filas).toEqual(['eliminar_publicacion:publicacion:10']);
+  });
+
+  it('HU-015 esc. 3: suspender cuenta cambia el estado, cierra sus sesiones y queda registrado', async () => {
+    const cuentas = new Cuentas(); const h = historial(); let cerradas = 0;
+    const sesiones = { eliminarTodasDe: async () => { cerradas++; } } as unknown as ISesionRepository;
+    await new EjecutorDeComandos(h).ejecutar(9, new SuspenderCuentaComando(cuentas, sesiones, new ReporteRepo(), 2));
+    expect(cuentas.estados.get(2)).toBe('suspendido');
+    expect(cerradas).toBe(1);
+    expect(h.filas).toEqual(['suspender_cuenta:usuario:2']);
+  });
+
+  it('no se puede suspender a un administrador (403), ni dos veces (409), ni a un inexistente (404)', async () => {
+    const cuentas = new Cuentas();
+    const sesiones = { eliminarTodasDe: async () => undefined } as unknown as ISesionRepository;
+    const suspender = (id: number) => new SuspenderCuentaComando(cuentas, sesiones, new ReporteRepo(), id).ejecutar();
+    await expect(suspender(9)).rejects.toMatchObject({ status: 403 });
+    await suspender(2);
+    await expect(suspender(2)).rejects.toMatchObject({ status: 409 });
+    await expect(suspender(77)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('un comando que falla NO queda registrado en el historial', async () => {
+    const h = historial();
+    await expect(new EjecutorDeComandos(h).ejecutar(9, new DescartarReporteComando(new ReporteRepo(), 5))).rejects.toMatchObject({ status: 404 });
+    expect(h.filas).toEqual([]);
+  });
+
+  it('aprobar solicitud delega en el servicio de comunidades y se registra', async () => {
+    const h = historial();
+    const solicitudes = { aprobar: async () => ({ comunidadId: 3, nombre: 'Yoga' }) } as never;
+    await new EjecutorDeComandos(h).ejecutar(9, new AprobarSolicitudComando(solicitudes, 4));
+    expect(h.filas).toEqual(['aprobar_solicitud_comunidad:solicitud_comunidad:4']);
+  });
+});
+
+describe('Administrador (LSP) y adminRequired (AC002)', () => {
+  it('LSP: un Administrador se comporta como un Usuario y además puede moderar', () => {
+    const props = { id: 1, nombre: 'A', correo: 'a@a.com', contrasenaHash: 'h' };
+    const comoUsuario: Usuario = new Administrador({ ...props, rol: 'admin' });
+    expect(comoUsuario.toPublico()).toMatchObject({ nombre: 'A', correo: 'a@a.com', rol: 'admin' });
+    expect(comoUsuario).toBeInstanceOf(Usuario);
+    expect(comoUsuario.puedeModerar()).toBe(true);
+    expect(new Usuario(props).puedeModerar()).toBe(false);
+  });
+
+  const correr = async (id: number) => {
+    const next = jest.fn();
+    await crearAdminRequired(new Cuentas())({} as never, { locals: { usuario: { id } } } as never, next);
+    return next.mock.calls[0][0];
+  };
+  it('un administrador pasa; un usuario común recibe 403; un usuario inexistente recibe 403', async () => {
+    expect(await correr(9)).toBeUndefined();
+    expect(await correr(2)).toMatchObject({ status: 403, message: 'Se requiere rol de administrador' });
+    expect(await correr(77)).toMatchObject({ status: 403 });
+  });
+});
