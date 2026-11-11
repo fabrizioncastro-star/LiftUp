@@ -17,6 +17,12 @@ describe('authRequired', () => {
   it('sin cabecera -> 401', async () => {
     expect((await ejecutar()).error).toMatchObject({ status: 401, message: 'Token no proporcionado' });
   });
+  it('cabecera sin el prefijo Bearer -> 401', async () => {
+    expect((await ejecutar('token-1', ['token-1'])).error).toMatchObject({ status: 401, message: 'Token no proporcionado' });
+  });
+  it('prefijo Bearer sin token -> 401', async () => {
+    expect((await ejecutar('Bearer ')).error).toMatchObject({ status: 401, message: 'Token no proporcionado' });
+  });
   it('token mal firmado -> 401', async () => {
     expect((await ejecutar('Bearer basura')).error).toMatchObject({ status: 401, message: 'Token inválido o expirado' });
   });
