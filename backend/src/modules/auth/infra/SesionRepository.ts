@@ -17,6 +17,10 @@ export class SesionRepository implements ISesionRepository {
     await this.pool.query('DELETE FROM sesiones WHERE token = ?', [token]);
   }
 
+  async eliminarTodasDe(usuarioId: number): Promise<void> {
+    await this.pool.query('DELETE FROM sesiones WHERE usuario_id = ?', [usuarioId]);
+  }
+
   async existeVigente(token: string): Promise<boolean> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
       'SELECT id FROM sesiones WHERE token = ? AND fecha_expiracion > NOW()', [token],

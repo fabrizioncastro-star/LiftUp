@@ -63,3 +63,34 @@ export class EliminarPublicacionComando implements IComandoAdmin {
     return `Publicación ${this.objetivoId} eliminada; autor ${autorId} notificado`;
   }
 }
+
+export class SuspenderCuentaComando implements IComandoAdmin {
+  readonly accion = 'suspender_cuenta';
+  readonly objetivoTipo = 'usuario';
+  constructor(
+    private readonly cuentas: IEstadoCuentaRepository,
+    private readonly sesiones: ISesionRepository,
+    private readonly reportes: IReporteRepository,
+    readonly objetivoId: number,
+  ) {}
+  async ejecutar(): Promise<string> {
+    const u = await this.cuentas.buscarPorId(this.objetivoId);
+    if (!u) throw new NotFoundError('Usuario no encontrado');
+    if (u.puedeModerar()) throw new ForbiddenError('No se puede suspender a un administrador');
+    if (u.estado === 'suspendido') throw new ConflictError('La cuenta ya está suspendida');
+    await this.cuentas.actualizarEstado(this.objetivoId, 'suspendido');
+    await this.sesiones.eliminarTodasDe(this.objetivoId);
+    await this.reportes.marcarPorObjetivo('usuario', this.objetivoId, 'revisado');
+    return `Cuenta ${u.correo} suspendida y sesiones cerradas`;
+  }
+}
+
+export class DescartarReporteComando implements IComandoAdmin {
+  readonly accion = 'descartar_reporte';
+  readonly objetivoTipo = 'reporte';
+  constructor(private readonly reportes: IReporteRepository, readonly objetivoId: number) {}
+  async ejecutar(): Promise<string> {
+    if (!(await this.reportes.marcar(this.objetivoId, 'descartado'))) throw new NotFoundError('Reporte no encontrado');
+    return `Reporte ${this.objetivoId} descartado`;
+  }
+}
