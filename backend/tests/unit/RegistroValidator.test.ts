@@ -24,6 +24,10 @@ describe('RegistroValidator', () => {
     expect(() => v.validar({ nombre: 'A', correo: 'a@b.com', contrasena: 12345678 })).toThrow('contraseña');
   });
 
+  it.each(['', '   '])('rechaza nombre vacío %p', (nombre) => {
+    expect(() => v.validar({ nombre, correo: 'a@b.com', contrasena: '12345678' })).toThrow('El nombre es obligatorio');
+  });
+
   it('recorta y normaliza nombre y correo', () => {
     expect(v.validar({ nombre: '  Ana ', correo: ' ANA@Correo.COM ', contrasena: '12345678' })).toEqual({
       nombre: 'Ana', correo: 'ana@correo.com', contrasena: '12345678',
