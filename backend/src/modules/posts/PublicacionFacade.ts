@@ -13,6 +13,8 @@ export interface DatosPublicacion {
   repeticiones?: unknown;
 }
 
+export type ObservadorPublicacion = (usuarioId: number) => Promise<void>;
+
 export const MAX_DESCRIPCION = 2000;
 
 function texto(valor: unknown, max: number, campo: string): string | null {
@@ -32,9 +34,15 @@ function numero(valor: unknown, campo: string, entero: boolean): number | null {
 }
 
 export class PublicacionFacade {
-  constructor(private readonly repo: IPublicacionRepository, private readonly medios: MediaFactory) {}
+  constructor(
+    private readonly repo: IPublicacionRepository,
+    private readonly medios: MediaFactory,
+    private readonly observadores: ObservadorPublicacion[] = [],
+  ) {}
 
-  async publicar(usuarioId: number, archivo: ArchivoSubido | undefined, datos: DatosPublicacion): Promise<Publicacion> {
+  async publicar(
+    usuarioId: number, archivo: ArchivoSubido | undefined, datos: DatosPublicacion, comunidadId: number | null = null,
+  ): Promise<Publicacion> {
     if (!archivo) throw new ValidationError('Debes adjuntar una foto o un video');
     const tipo = this.medios.crearValidador().validar(archivo);
     const descripcion = texto(datos.descripcion, MAX_DESCRIPCION, 'La descripción');
@@ -42,13 +50,16 @@ export class PublicacionFacade {
 
     const almacenamiento = this.medios.crearAlmacenamiento();
     const archivoUrl = await almacenamiento.guardar(archivo);
+    let creada: Publicacion;
     try {
-      const nueva = fabricaPara(tipo).crear({ usuarioId, descripcion, archivoUrl, ...entrenamiento });
-      return await this.repo.crear(nueva);
+      const nueva = fabricaPara(tipo).crear({ usuarioId, comunidadId, descripcion, archivoUrl, ...entrenamiento });
+      creada = await this.repo.crear(nueva);
     } catch (err) {
       await almacenamiento.eliminar(archivoUrl);
       throw err;
     }
+    await this.avisar(usuarioId);
+    return creada;
   }
 
   async editar(usuarioId: number, id: number, datos: DatosPublicacion): Promise<Publicacion> {
@@ -62,8 +73,29 @@ export class PublicacionFacade {
 
   async eliminar(usuarioId: number, id: number): Promise<void> {
     const pub = await this.obtenerPropia(usuarioId, id, 'Solo puedes eliminar tus propias publicaciones');
-    await this.repo.eliminar(id);
+    await this.borrar(pub);
+  }
+
+  async eliminarComoAdmin(id: number): Promise<{ autorId: number }> {
+    const pub = await this.repo.buscarPorId(id);
+    if (!pub) throw new NotFoundError('Publicación no encontrada');
+    await this.borrar(pub);
+    return { autorId: pub.usuarioId };
+  }
+
+  private async borrar(pub: Publicacion): Promise<void> {
+    await this.repo.eliminar(pub.id as number);
     await this.medios.crearAlmacenamiento().eliminar(pub.archivoUrl);
+  }
+
+  private async avisar(usuarioId: number): Promise<void> {
+    for (const observador of this.observadores) {
+      try {
+        await observador(usuarioId);
+      } catch (err) {
+        console.error('[LiftUp] Observador de publicación falló:', err);
+      }
+    }
   }
 
   private async obtenerPropia(usuarioId: number, id: number, mensajeAjeno: string): Promise<Publicacion> {

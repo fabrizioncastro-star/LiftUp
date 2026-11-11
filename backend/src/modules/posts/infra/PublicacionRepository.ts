@@ -11,9 +11,9 @@ export class PublicacionRepository implements IPublicacionRepository {
     const e = p.entrenamiento;
     const [res] = await this.pool.query<ResultSetHeader>(
       `INSERT INTO publicaciones
-        (usuario_id, descripcion, archivo_url, tipo_archivo, ejercicio, peso_kg, series, repeticiones)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [p.usuarioId, p.descripcion, p.archivoUrl, p.tipoArchivo, e.ejercicio, e.pesoKg, e.series, e.repeticiones],
+        (usuario_id, comunidad_id, descripcion, archivo_url, tipo_archivo, ejercicio, peso_kg, series, repeticiones)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [p.usuarioId, p.comunidadId, p.descripcion, p.archivoUrl, p.tipoArchivo, e.ejercicio, e.pesoKg, e.series, e.repeticiones],
     );
     return (await this.buscarPorId(res.insertId)) as Publicacion;
   }
@@ -37,7 +37,7 @@ export class PublicacionRepository implements IPublicacionRepository {
 
   private aDominio(r: RowDataPacket): Publicacion {
     return fabricaPorTipoGuardado(r.tipo_archivo).crear({
-      id: r.id, usuarioId: r.usuario_id, descripcion: r.descripcion, archivoUrl: r.archivo_url,
+      id: r.id, usuarioId: r.usuario_id, comunidadId: r.comunidad_id, descripcion: r.descripcion, archivoUrl: r.archivo_url,
       ejercicio: r.ejercicio, pesoKg: r.peso_kg === null ? null : Number(r.peso_kg),
       series: r.series, repeticiones: r.repeticiones, fecha: r.fecha,
     });

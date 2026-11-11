@@ -10,6 +10,7 @@ export interface DatosEntrenamiento {
 export interface PublicacionProps extends DatosEntrenamiento {
   id?: number;
   usuarioId: number;
+  comunidadId?: number | null;
   descripcion: string | null;
   archivoUrl: string;
   fecha?: Date;
@@ -18,6 +19,7 @@ export interface PublicacionProps extends DatosEntrenamiento {
 export abstract class Publicacion {
   private readonly _id?: number;
   private readonly _usuarioId: number;
+  private readonly _comunidadId: number | null;
   private _descripcion: string | null;
   private readonly _archivoUrl: string;
   private _entrenamiento: DatosEntrenamiento;
@@ -26,6 +28,7 @@ export abstract class Publicacion {
   protected constructor(p: PublicacionProps) {
     this._id = p.id;
     this._usuarioId = p.usuarioId;
+    this._comunidadId = p.comunidadId ?? null;
     this._descripcion = p.descripcion;
     this._archivoUrl = p.archivoUrl;
     this._entrenamiento = { ejercicio: p.ejercicio, pesoKg: p.pesoKg, series: p.series, repeticiones: p.repeticiones };
@@ -36,6 +39,7 @@ export abstract class Publicacion {
 
   get id(): number | undefined { return this._id; }
   get usuarioId(): number { return this._usuarioId; }
+  get comunidadId(): number | null { return this._comunidadId; }
   get descripcion(): string | null { return this._descripcion; }
   get archivoUrl(): string { return this._archivoUrl; }
   get entrenamiento(): DatosEntrenamiento { return this._entrenamiento; }

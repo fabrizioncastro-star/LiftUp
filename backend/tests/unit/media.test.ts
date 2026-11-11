@@ -12,6 +12,14 @@ describe('detectarTipo (firma del archivo)', () => {
   it.each([['gif', GIF], ['pdf', PDF], ['vacío', Buffer.alloc(0)], ['corto', Buffer.from([0xff])]])(
     'rechaza %s', (_n, buf) => expect(detectarTipo(buf)).toBeNull(),
   );
+
+  it.each([
+    ['3 bytes que no son JPG', Buffer.from([0x00, 0x00, 0x00])],
+    ['empieza como JPG pero falla el 2.º byte', Buffer.from([0xff, 0x00, 0xff, 0x00])],
+    ['empieza como JPG pero falla el 3.er byte', Buffer.from([0xff, 0xd8, 0x00, 0x00])],
+    ['byte 0x89 sin el texto PNG', Buffer.concat([Buffer.from([0x89]), Buffer.from('XYZ')])],
+    ['8 bytes sin firma conocida', Buffer.alloc(8, 0)],
+  ])('rechaza %s', (_n, buf) => expect(detectarTipo(buf)).toBeNull());
 });
 
 describe('Abstract Factory de medios (HU-004 / HU-005)', () => {
