@@ -5,10 +5,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { RecuperarScreen } from './src/screens/RecuperarScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
 import { C } from './src/theme';
 
-type Pantalla = 'registro' | 'login';
+type Pantalla = 'registro' | 'login' | 'recuperar';
 
 function Raiz() {
   const { usuario, cargando } = useAuth();
@@ -27,9 +28,10 @@ function Raiz() {
     return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: C.fondo }}><ActivityIndicator size="large" /></View>;
   }
   if (usuario) return <HomeScreen />;
+  if (pantalla === 'recuperar') return <RecuperarScreen alTerminar={() => setPantalla('login')} />;
   return pantalla === 'registro'
     ? <RegisterScreen irALogin={() => setPantalla('login')} />
-    : <LoginScreen irARegistro={() => setPantalla('registro')} />;
+    : <LoginScreen irARegistro={() => setPantalla('registro')} irARecuperar={() => setPantalla('recuperar')} />;
 }
 
 export default function App() {

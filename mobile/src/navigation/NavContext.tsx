@@ -1,9 +1,19 @@
 import React, { createContext, useContext } from 'react';
-import { FeedItem } from '../types';
+import { Comunidad, FeedItem } from '../types';
 
 export type Ruta =
+  | { n: 'comentarios'; pub: FeedItem; alCambiar?: (total: number) => void }
+  | { n: 'usuario'; id: number }
   | { n: 'editarPublicacion'; pub: FeedItem }
-  | { n: 'editarPerfil' };
+  | { n: 'editarPerfil' }
+  | { n: 'notificaciones' }
+  | { n: 'buscar' }
+  | { n: 'solicitudesSeguimiento' }
+  | { n: 'privacidad' }
+  | { n: 'comunidad'; c: Comunidad }
+  | { n: 'nuevaComunidad' }
+  | { n: 'nuevaSesion'; comunidadId?: number; comunidadNombre?: string }
+  | { n: 'admin' };
 
 interface Nav {
   push(r: Ruta): void;
