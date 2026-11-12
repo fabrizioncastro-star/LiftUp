@@ -10,6 +10,11 @@ export class UsuarioRepoFalso implements IUsuarioRepository {
   guardados: Usuario[] = [];
   async buscarPorCorreo(correo: string) { return this.guardados.find((u) => u.correo === correo) ?? null; }
   async buscarPorId(id: number) { return this.guardados.find((u) => u.id === id) ?? null; }
+  async actualizarContrasena(id: number, hash: string) {
+    const i = this.guardados.findIndex((u) => u.id === id);
+    const u = this.guardados[i];
+    this.guardados[i] = new Usuario({ id: u.id, nombre: u.nombre, correo: u.correo, contrasenaHash: hash, estado: u.estado });
+  }
   async crear(u: Usuario) {
     const conId = new Usuario({ id: this.guardados.length + 1, nombre: u.nombre, correo: u.correo, contrasenaHash: u.contrasenaHash });
     this.guardados.push(conId);
@@ -27,6 +32,7 @@ export class SesionRepoFalso implements ISesionRepository {
   async crear(s: Sesion) { this.sesiones.push(s); }
   async existeVigente(token: string) { return this.sesiones.some((s) => s.token === token); }
   async eliminar(token: string) { this.sesiones = this.sesiones.filter((s) => s.token !== token); }
+  async eliminarTodasDe(usuarioId: number) { this.sesiones = this.sesiones.filter((s) => s.usuarioId !== usuarioId); }
 }
 
 export const hasherFalso: IPasswordHasher = {

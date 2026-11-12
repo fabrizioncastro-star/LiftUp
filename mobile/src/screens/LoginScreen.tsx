@@ -7,7 +7,7 @@ import { Boton, ErrorTexto } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
 import { C } from '../theme';
 
-export function LoginScreen({ irARegistro }: { irARegistro: () => void }) {
+export function LoginScreen({ irARegistro, irARecuperar }: { irARegistro: () => void; irARecuperar: () => void }) {
   const { iniciarSesion } = useAuth();
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
@@ -37,6 +37,7 @@ export function LoginScreen({ irARegistro }: { irARegistro: () => void }) {
       <Campo etiqueta="Contraseña" value={contrasena} onChangeText={setContrasena} secureTextEntry />
       <ErrorTexto texto={error} />
       <Boton texto="Iniciar Sesión" onPress={enviar} cargando={enviando} />
+      <Pressable onPress={irARecuperar}><Text style={s.link}>¿Olvidaste tu contraseña?</Text></Pressable>
       <Pressable onPress={irARegistro}><Text style={s.link}>¿No tienes cuenta? Regístrate</Text></Pressable>
     </Pantalla>
   );
